@@ -31,6 +31,7 @@ import {
 export const emptyNode = new VNode('', {}, [])
 
 const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
+const callstackSplitLimit = 2000;
 
 function sameVnode (a, b) {
   return (
@@ -231,7 +232,21 @@ export function createPatchFunction (backend) {
 
   function initComponent (vnode, insertedVnodeQueue) {
     if (isDef(vnode.data.pendingInsert)) {
-      insertedVnodeQueue.push.apply(insertedVnodeQueue, vnode.data.pendingInsert)
+      if (vnode.data.pendingInsert.length > callstackSplitLimit)
+      {
+        let start = 0
+        while (start < vnode.data.pendingInsert.length)
+        {
+          const len = vnode.data.pendingInsert.length - start > callstackSplitLimit ? callstackSplitLimit : vnode.data.pendingInsert.length - start;
+          const tmp = vnode.data.pendingInsert.slice(start, len);
+          insertedVnodeQueue.push.apply(insertedVnodeQueue, tmp);
+          start += len;
+        }
+      }
+      else
+      {
+        insertedVnodeQueue.push.apply(insertedVnodeQueue, vnode.data.pendingInsert)
+      }
       vnode.data.pendingInsert = null
     }
     vnode.elm = vnode.componentInstance.$el
